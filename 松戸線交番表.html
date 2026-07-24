@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="松戸線交番表">
+<meta name="theme-color" content="#e0518a">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='40' fill='%23e0518a'/%3E%3Ctext x='90' y='118' font-size='90' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3E交%3C/text%3E%3C/svg%3E">
+<title>松戸線 交番表</title>
+<style>
+  :root{
+    --ink:#211a22; --ink-soft:#6b5f6d; --ink-faint:#9a8f98;
+    --paper:#f6f2f1; --surface:#ffffff; --line:#ece5e8;
+    --rose:#e0518a; --rose-deep:#b8396d; --rose-tint:#fdeef4; --rose-tint2:#fbe0ec;
+    --off-bg:#eef1f6; --off-tx:#54637d;
+    --hk-bg:#fbf1de; --hk-tx:#9a6a12;
+    --sat:#2f6fb0; --sun:#cc3d54;
+    --shadow:0 1px 2px rgba(33,26,34,.05),0 8px 24px rgba(33,26,34,.06);
+    --safe-t:env(safe-area-inset-top); --safe-b:env(safe-area-inset-bottom);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;
+    background:var(--paper); color:var(--ink);
+    -webkit-font-smoothing:antialiased; line-height:1.5;
+    padding-bottom:calc(64px + var(--safe-b));
+    overscroll-behavior-y:none;
+  }
+  .wrap{max-width:520px;margin:0 auto;}
+
+  /* Header */
+  header{
+    position:sticky;top:0;z-index:50;
+    background:linear-gradient(180deg,#fff 0%,#fff 70%,rgba(255,255,255,.92) 100%);
+    backdrop-filter:saturate(1.2) blur(8px);
+    border-bottom:1px solid var(--line);
+    padding:calc(var(--safe-t) + 10px) 16px 10px;
+  }
+  .hbar{display:flex;align-items:center;justify-content:space-between;gap:10px;max-width:520px;margin:0 auto;}
+  .brand{display:flex;align-items:center;gap:9px;min-width:0;}
+  .logo{width:30px;height:30px;border-radius:9px;background:var(--rose);
+    display:grid;place-items:center;color:#fff;font-weight:800;font-size:17px;flex:none;
+    box-shadow:0 2px 6px rgba(224,81,138,.4);}
+  .brand h1{font-size:16px;font-weight:800;margin:0;letter-spacing:.02em;white-space:nowrap;}
+  .brand .sub{font-size:10.5px;color:var(--ink-faint);font-weight:600;letter-spacing:.04em;}
+  .gear{width:38px;height:38px;border-radius:11px;border:1px solid var(--line);background:#fff;
+    display:grid;place-items:center;font-size:18px;flex:none;cursor:pointer;color:var(--ink-soft);}
+  .gear:active{background:var(--paper);}
+
+  /* Date hero */
+  .hero{background:var(--surface);border-bottom:1px solid var(--line);padding:12px 16px 14px;}
+  .datenav{display:flex;align-items:stretch;gap:8px;max-width:520px;margin:0 auto;}
+  .navbtn{width:44px;flex:none;border:1px solid var(--line);background:#fff;border-radius:13px;
+    font-size:20px;color:var(--rose-deep);display:grid;place-items:center;cursor:pointer;font-weight:700;}
+  .navbtn:active{background:var(--rose-tint);}
+  .datecenter{flex:1;text-align:center;position:relative;border-radius:13px;padding:4px 6px;cursor:pointer;}
+  .datecenter:active{background:var(--paper);}
+  .dline{display:flex;align-items:baseline;justify-content:center;gap:8px;flex-wrap:wrap;}
+  .dmain{font-size:22px;font-weight:800;letter-spacing:.01em;font-variant-numeric:tabular-nums;}
+  .dwd{font-size:18px;font-weight:800;}
+  .dsub{font-size:11.5px;color:var(--ink-faint);font-weight:600;margin-top:1px;}
+  .dsub .hol{color:var(--sun);font-weight:700;}
+  .hidden-date{position:absolute;inset:0;opacity:0;width:100%;height:100%;border:0;cursor:pointer;}
+
+  .metarow{display:flex;gap:8px;justify-content:center;margin-top:11px;flex-wrap:wrap;}
+  .chip{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;font-weight:700;
+    padding:5px 11px;border-radius:999px;background:var(--paper);color:var(--ink-soft);border:1px solid var(--line);}
+  .chip b{font-size:13px;color:var(--ink);}
+  .chip.koban{background:var(--rose);color:#fff;border-color:transparent;box-shadow:0 2px 8px rgba(224,81,138,.35);}
+  .chip.koban b{color:#fff;}
+  .chip.duty-work{background:var(--rose-tint2);color:var(--rose-deep);border-color:#f6cbdd;}
+  .chip.duty-off{background:var(--off-bg);color:var(--off-tx);border-color:#dfe5ef;}
+  .chip.duty-hk{background:var(--hk-bg);color:var(--hk-tx);border-color:#efe0c2;}
+
+  /* Self banner */
+  .selfbar{max-width:520px;margin:11px auto 0;display:flex;align-items:center;gap:9px;
+    background:linear-gradient(100deg,var(--rose) 0%,#ec6ea0 100%);color:#fff;border-radius:13px;
+    padding:9px 13px;font-weight:700;font-size:13.5px;box-shadow:0 4px 14px rgba(224,81,138,.3);}
+  .selfbar .ic{font-size:16px;}
+  .selfbar.off{background:var(--off-bg);color:var(--off-tx);box-shadow:none;}
+  .selfbar.hk{background:var(--hk-bg);color:var(--hk-tx);box-shadow:none;}
+
+  main{padding:14px 16px 24px;max-width:520px;margin:0 auto;}
+
+  /* Station cards */
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:18px;margin-bottom:13px;
+    box-shadow:var(--shadow);overflow:hidden;}
+  .card-h{display:flex;align-items:center;gap:9px;padding:12px 15px;border-bottom:1px solid var(--line);}
+  .stdot{width:11px;height:11px;border-radius:50%;flex:none;}
+  .card-h .nm{font-size:16px;font-weight:800;letter-spacing:.02em;}
+  .card-h .ct{margin-left:auto;font-size:11px;color:var(--ink-faint);font-weight:700;}
+  .row{display:flex;padding:11px 15px;gap:12px;align-items:flex-start;}
+  .row+.row{border-top:1px solid #f3eef1;}
+  .rlabel{font-size:11.5px;font-weight:800;color:var(--ink-faint);width:44px;flex:none;padding-top:3px;letter-spacing:.06em;}
+  .people{display:flex;flex-wrap:wrap;gap:6px;}
+  .person{font-size:15px;font-weight:700;background:var(--paper);border:1px solid var(--line);
+    border-radius:9px;padding:4px 10px;color:var(--ink);}
+  .person.lead{background:#fff;border-color:#e6dde2;}
+  .person.me{background:var(--rose);color:#fff;border-color:transparent;box-shadow:0 2px 7px rgba(224,81,138,.35);}
+  .person.empty{color:var(--ink-faint);background:transparent;border-style:dashed;font-weight:600;}
+  .person.vacant{background:#fff3f3;border:1px dashed #e8a3a3;color:#c0392b;font-weight:800;}
+
+  .foot{font-size:11.5px;color:var(--ink-faint);text-align:center;margin:6px 4px 0;line-height:1.7;font-weight:600;}
+  .before{background:var(--hk-bg);border:1px solid #efe0c2;color:var(--hk-tx);border-radius:14px;
+    padding:14px;font-size:13.5px;font-weight:700;text-align:center;margin-bottom:12px;line-height:1.7;}
+
+  /* List view */
+  .lgroup-h{font-size:12px;font-weight:800;color:var(--ink-faint);letter-spacing:.08em;
+    margin:16px 4px 8px;text-transform:none;}
+  .lgroup-h:first-child{margin-top:2px;}
+  .lrow{display:flex;align-items:center;gap:11px;background:var(--surface);border:1px solid var(--line);
+    border-radius:14px;padding:10px 13px;margin-bottom:7px;cursor:pointer;box-shadow:var(--shadow);}
+  .lrow:active{background:var(--rose-tint);}
+  .lrow.today{border-color:var(--rose);box-shadow:0 0 0 2px var(--rose-tint2);}
+  .ldate{display:flex;flex-direction:column;align-items:center;width:46px;flex:none;}
+  .ldate .d{font-size:20px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums;}
+  .ldate .m{font-size:10px;color:var(--ink-faint);font-weight:700;}
+  .lwd{width:26px;flex:none;text-align:center;font-size:15px;font-weight:800;}
+  .lbody{flex:1;min-width:0;}
+  .lbody .l1{font-size:13.5px;font-weight:700;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .lbody .l1 .me-i{color:var(--rose-deep);font-weight:800;}
+  .lkob{width:30px;height:30px;flex:none;border-radius:9px;background:var(--paper);color:var(--ink-soft);
+    display:grid;place-items:center;font-size:13px;font-weight:800;font-variant-numeric:tabular-nums;}
+  .ltag{font-size:10.5px;font-weight:800;padding:3px 8px;border-radius:999px;flex:none;}
+  .tag-work{background:var(--rose-tint2);color:var(--rose-deep);}
+  .tag-off{background:var(--off-bg);color:var(--off-tx);}
+  .tag-hk{background:var(--hk-bg);color:var(--hk-tx);}
+  .tag-ake{background:#eee;color:#8a8590;}
+
+  /* 交番表 grid view */
+  .segsub{display:flex;gap:6px;margin-bottom:12px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:2px;}
+  .segsub button{white-space:nowrap;border:1px solid var(--line);background:#fff;border-radius:999px;
+    padding:7px 14px;font-size:13px;font-weight:800;color:var(--ink-soft);cursor:pointer;flex:none;}
+  .segsub button.on{background:var(--ink);color:#fff;border-color:var(--ink);}
+  table.kb{width:100%;border-collapse:separate;border-spacing:0;background:#fff;border:1px solid var(--line);
+    border-radius:14px;overflow:hidden;box-shadow:var(--shadow);font-size:13px;}
+  table.kb th,table.kb td{padding:8px 7px;text-align:left;border-bottom:1px solid #f1ebee;vertical-align:top;}
+  table.kb th{background:var(--paper);font-size:11px;color:var(--ink-soft);font-weight:800;position:sticky;top:0;}
+  table.kb tr:last-child td{border-bottom:0;}
+  table.kb .kc{text-align:center;font-weight:800;width:26px;color:var(--ink-soft);font-variant-numeric:tabular-nums;}
+  table.kb tr.work .kc{color:var(--rose-deep);}
+  table.kb tr.off td{background:#fafbfd;}
+  table.kb .duty{font-weight:800;font-size:11px;}
+  table.kb .me{color:var(--rose-deep);font-weight:800;}
+  .kb-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:14px;}
+
+  /* Search */
+  .searchbox{display:flex;gap:8px;margin-bottom:6px;}
+  .searchbox input{flex:1;border:1px solid var(--line);border-radius:13px;padding:12px 14px;font-size:16px;
+    background:#fff;font-family:inherit;font-weight:600;}
+  .searchbox input:focus{outline:none;border-color:var(--rose);box-shadow:0 0 0 3px var(--rose-tint);}
+  .sugg{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;}
+  .sugg button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 12px;
+    font-size:13px;font-weight:700;color:var(--ink-soft);cursor:pointer;}
+  .sugg button:active{background:var(--rose-tint);}
+  .shint{font-size:12.5px;color:var(--ink-faint);text-align:center;margin:26px 10px;font-weight:600;line-height:1.8;}
+
+  /* Bottom tab bar */
+  nav.tabs{position:fixed;bottom:0;left:0;right:0;z-index:60;background:rgba(255,255,255,.94);
+    backdrop-filter:saturate(1.3) blur(12px);border-top:1px solid var(--line);
+    padding-bottom:var(--safe-b);display:flex;}
+  nav.tabs .tabinner{display:flex;width:100%;max-width:520px;margin:0 auto;}
+  nav.tabs button{flex:1;background:none;border:0;padding:8px 0 7px;display:flex;flex-direction:column;
+    align-items:center;gap:2px;cursor:pointer;color:var(--ink-faint);font-family:inherit;}
+  nav.tabs button .ti{font-size:20px;line-height:1;}
+  nav.tabs button .tl{font-size:10.5px;font-weight:800;letter-spacing:.02em;}
+  nav.tabs button.on{color:var(--rose);}
+
+  /* Settings sheet */
+  .sheet-bg{position:fixed;inset:0;z-index:100;background:rgba(20,15,20,.4);
+    opacity:0;pointer-events:none;transition:opacity .22s;}
+  .sheet-bg.show{opacity:1;pointer-events:auto;}
+  .sheet{position:fixed;left:0;right:0;bottom:0;z-index:101;background:#fff;
+    border-radius:22px 22px 0 0;padding:8px 20px calc(24px + var(--safe-b));max-width:520px;margin:0 auto;
+    transform:translateY(102%);transition:transform .28s cubic-bezier(.2,.9,.3,1);box-shadow:0 -8px 40px rgba(0,0,0,.18);}
+  .sheet.show{transform:translateY(0);}
+  .grabber{width:40px;height:5px;border-radius:3px;background:#ddd6da;margin:6px auto 14px;}
+  .sheet h2{font-size:17px;margin:0 0 4px;font-weight:800;}
+  .sheet .field{margin:16px 0 4px;}
+  .sheet label{font-size:12.5px;font-weight:800;color:var(--ink-soft);display:block;margin-bottom:7px;letter-spacing:.04em;}
+  .sheet select{width:100%;border:1px solid var(--line);border-radius:13px;padding:12px 14px;font-size:16px;
+    font-family:inherit;font-weight:700;background:#fff;color:var(--ink);}
+  .sheet .note{font-size:12px;color:var(--ink-faint);line-height:1.8;margin-top:16px;font-weight:600;
+    border-top:1px solid var(--line);padding-top:14px;}
+  .sheet .done{width:100%;margin-top:18px;background:var(--rose);color:#fff;border:0;border-radius:14px;
+    padding:14px;font-size:16px;font-weight:800;font-family:inherit;cursor:pointer;}
+  .sheet .done:active{background:var(--rose-deep);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="hbar">
+      <div class="brand">
+        <div class="logo">交</div>
+        <div>
+          <h1>松戸線 交番表</h1>
+          <div class="sub">北習志野 駅長管区</div>
+        </div>
+      </div>
+      <div class="gear" id="gearBtn" aria-label="設定">⚙</div>
+    </div>
+  </header>
+
+  <!-- Date hero (shown for 日別 / 交番表 not) -->
+  <section class="hero" id="hero">
+    <div class="datenav">
+      <button class="navbtn" id="prevDay" aria-label="前日">‹</button>
+      <div class="datecenter" id="dateCenter">
+        <div class="dline"><span class="dmain" id="dMain">—</span><span class="dwd" id="dWd"></span></div>
+        <div class="dsub" id="dSub"></div>
+        <input type="date" class="hidden-date" id="datePicker" aria-label="日付を選択">
+      </div>
+      <button class="navbtn" id="nextDay" aria-label="翌日">›</button>
+    </div>
+    <div class="metarow" id="metaRow"></div>
+    <div id="selfSlot"></div>
+  </section>
+
+  <main id="main"></main>
+</div>
+
+<nav class="tabs">
+  <div class="tabinner">
+    <button data-view="day" class="on"><span class="ti">📅</span><span class="tl">日別</span></button>
+    <button data-view="list"><span class="ti">📋</span><span class="tl">一覧</span></button>
+    <button data-view="cycle"><span class="ti">🔁</span><span class="tl">交番表</span></button>
+    <button data-view="search"><span class="ti">🔍</span><span class="tl">検索</span></button>
+  </div>
+</nav>
+
+<!-- Settings -->
+<div class="sheet-bg" id="sheetBg"></div>
+<div class="sheet" id="sheet">
+  <div class="grabber"></div>
+  <h2>設定</h2>
+  <div class="field">
+    <label>自分の名前（ハイライト表示）</label>
+    <select id="selfSelect"></select>
+  </div>
+  <div class="field">
+    <label>「今日」の基準日を変更（動作確認用）</label>
+    <select id="todayMode">
+      <option value="real">実際の今日</option>
+      <option value="anchor">2026年7月16日（交番改正日）</option>
+    </select>
+  </div>
+  <div class="note" id="settingsNote"></div>
+  <button class="done" id="sheetDone">閉じる</button>
+</div>
+
+<script>
+/* ============ データ（26/7/16 交番改正・28日周期） ============ */
+const ROSTER = [{"k":1,"duty":"北習B","kh_j":"舘石","kh_e":"花澤・田邊・佐藤","ku_j":"宇佐美","ku_e":"森川・足立","sk_j":"山下","sk_e":"石川・深井・眞茅・花野井"},{"k":2,"duty":"","kh_j":"太田","kh_e":"佐野・ひ・鈴木","ku_j":"橋本","ku_e":"瀧澤・鈴木","sk_j":"長谷川","sk_e":"岩井・な・片桐・黒米"},{"k":3,"duty":"公休","kh_j":"上野","kh_e":"葛西・佐藤・野崎","ku_j":"西久保","ku_e":"長嶋・戸川","sk_j":"尾形","sk_e":"川崎・青藤・眞茅・山田"},{"k":4,"duty":"北習B","kh_j":"舘石","kh_e":"花澤・平野・鈴木","ku_j":"宇佐美","ku_e":"森川・足立","sk_j":"山下","sk_e":"石川・匠・深井・黒米"},{"k":5,"duty":"","kh_j":"太田","kh_e":"佐野・ひ・野崎","ku_j":"橋本","ku_e":"瀧澤・鈴木","sk_j":"長谷川","sk_e":"岩井・な・片桐・山田"},{"k":6,"duty":"法公","kh_j":"上野","kh_e":"葛西・佐藤・石井","ku_j":"西久保","ku_e":"森川・戸川","sk_j":"尾形","sk_e":"川崎・青藤・眞茅・花野井"},{"k":7,"duty":"北習B","kh_j":"舘石","kh_e":"石川・ひ・鈴木","ku_j":"橋本","ku_e":"花澤・足立","sk_j":"山下","sk_e":"岩井・匠・深井・黒米"},{"k":8,"duty":"","kh_j":"太田","kh_e":"佐野・佐藤・野崎","ku_j":"西久保","ku_e":"瀧澤・鈴木","sk_j":"長谷川","sk_e":"川崎・な・片桐・山田"},{"k":9,"duty":"くB","kh_j":"上野","kh_e":"葛西・鈴木・石井","ku_j":"舘石","ku_e":"森川・戸川","sk_j":"尾形","sk_e":"石川・青藤・眞茅・花野井"},{"k":10,"duty":"","kh_j":"太田","kh_e":"佐野・ひ・野崎","ku_j":"橋本","ku_e":"花澤・足立","sk_j":"山下","sk_e":"岩井・匠・深井・黒米"},{"k":11,"duty":"法公","kh_j":"上野","kh_e":"葛西・佐藤・石井","ku_j":"西久保","ku_e":"瀧澤・鈴木","sk_j":"長谷川","sk_e":"川崎・な・片桐・山田"},{"k":12,"duty":"くB","kh_j":"山下","kh_e":"石川・鈴木・尾崎","ku_j":"舘石","ku_e":"花澤・戸川","sk_j":"尾形","sk_e":"岩井・青藤・眞茅・花野井"},{"k":13,"duty":"","kh_j":"太田","kh_e":"佐野・ひ・野崎","ku_j":"西久保","ku_e":"瀧澤・鈴木","sk_j":"山下","sk_e":"川崎・匠・深井・黒米"},{"k":14,"duty":"くB","kh_j":"上野","kh_e":"葛西・佐藤・石井","ku_j":"舘石","ku_e":"長嶋・戸川","sk_j":"長谷川","sk_e":"石川・な・片桐・山田"},{"k":15,"duty":"","kh_j":"太田","kh_e":"佐野・鈴木・尾崎","ku_j":"田中","ku_e":"花澤・足立","sk_j":"尾形","sk_e":"岩井・青藤・眞茅・花野井"},{"k":16,"duty":"公休","kh_j":"上野","kh_e":"葛西・ひ・野崎","ku_j":"西久保","ku_e":"瀧澤・鈴木","sk_j":"山下","sk_e":"川崎・匠・深井・黒米"},{"k":17,"duty":"くB","kh_j":"山下","kh_e":"花澤・佐藤・石井","ku_j":"舘石","ku_e":"長嶋・戸川","sk_j":"尾形","sk_e":"石川・な・片桐・山田"},{"k":18,"duty":"","kh_j":"太田","kh_e":"佐野・鈴木・尾崎","ku_j":"田中","ku_e":"瀧澤・鈴木","sk_j":"長谷川","sk_e":"岩井・青藤・眞茅・花野井"},{"k":19,"duty":"公休","kh_j":"上野","kh_e":"葛西・ひ・野崎","ku_j":"西久保","ku_e":"長嶋・戸川","sk_j":"尾形","sk_e":"川崎・匠・深井・黒米"},{"k":20,"duty":"北習B","kh_j":"舘石","kh_e":"花澤・佐藤・石井","ku_j":"田中","ku_e":"速水・足立","sk_j":"山下","sk_e":"石川・な・片桐・山田"},{"k":21,"duty":"","kh_j":"太田","kh_e":"佐野・鈴木・田邊","ku_j":"橋本","ku_e":"瀧澤・鈴木","sk_j":"長谷川","sk_e":"岩井・青藤・眞茅・花野井"},{"k":22,"duty":"法公","kh_j":"上野","kh_e":"葛西・ひ・野崎","ku_j":"西久保","ku_e":"長嶋・戸川","sk_j":"尾形","sk_e":"川崎・な・深井・黒米"},{"k":23,"duty":"北習B","kh_j":"舘石","kh_e":"花澤・佐藤・石井","ku_j":"田中","ku_e":"速水・足立","sk_j":"山下","sk_e":"石川・青藤・片桐・山田"},{"k":24,"duty":"","kh_j":"太田","kh_e":"佐野・鈴木・田邊","ku_j":"橋本","ku_e":"瀧澤・鈴木","sk_j":"長谷川","sk_e":"岩井・深井・眞茅・花野井"},{"k":25,"duty":"法公","kh_j":"上野","kh_e":"葛西・ひ・野崎","ku_j":"西久保","ku_e":"長嶋・戸川","sk_j":"尾形","sk_e":"川崎・な・片桐・黒米"},{"k":26,"duty":"北習B","kh_j":"舘石","kh_e":"花澤・佐藤・田邊","ku_j":"宇佐美","ku_e":"速水・足立","sk_j":"山下","sk_e":"石川・青藤・眞茅・山田"},{"k":27,"duty":"","kh_j":"太田","kh_e":"佐野・鈴木・平野","ku_j":"橋本","ku_e":"瀧澤・鈴木","sk_j":"長谷川","sk_e":"岩井・な・深井・黒米"},{"k":28,"duty":"公休","kh_j":"上野","kh_e":"葛西・ひ・野崎","ku_j":"西久保","ku_e":"長嶋・戸川","sk_j":"尾形","sk_e":"川崎・青藤・片桐・山田"}];
+
+const STATIONS = [
+  {id:"kh", name:"北習志野", color:"#e0518a", jkey:"kh_j", ekey:"kh_e", role:"北助役"},
+  {id:"ku", name:"くぬぎ山", color:"#3a9d8e", jkey:"ku_j", ekey:"ku_e", role:"助役"},
+  {id:"sk", name:"新　鎌",   color:"#7a6bc4", jkey:"sk_j", ekey:"sk_e", role:"新鎌助役"},
+];
+
+// 交番改正の起点：交番1 = 2026年7月16日(火)
+const ANCHOR = new Date(2026,6,16);
+const WD = ["日","月","火","水","木","金","土"];
+
+// 祝日（2026年 確定 ＋ 2027年前半 目安）
+const HOLIDAYS = {
+  "2026-01-01":"元日","2026-01-12":"成人の日","2026-02-11":"建国記念の日","2026-02-23":"天皇誕生日",
+  "2026-03-20":"春分の日","2026-04-29":"昭和の日","2026-05-03":"憲法記念日","2026-05-04":"みどりの日",
+  "2026-05-05":"こどもの日","2026-05-06":"振替休日","2026-07-20":"海の日","2026-08-11":"山の日",
+  "2026-09-21":"敬老の日","2026-09-22":"国民の休日","2026-09-23":"秋分の日","2026-10-12":"スポーツの日",
+  "2026-11-03":"文化の日","2026-11-23":"勤労感謝の日",
+  "2027-01-01":"元日","2027-01-11":"成人の日","2027-02-11":"建国記念の日","2027-02-23":"天皇誕生日",
+  "2027-03-21":"春分の日","2027-03-22":"振替休日","2027-04-29":"昭和の日","2027-05-03":"憲法記念日",
+  "2027-05-04":"みどりの日","2027-05-05":"こどもの日","2027-07-19":"海の日"
+};
+
+/* ============ 状態 ============ */
+let state = {
+  view:"day",
+  date:null,          // 表示中の日付
+  self:"舘石",
+  todayMode:"real",
+  cycleStation:"kh",
+};
+
+/* ============ ユーティリティ ============ */
+function ymd(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
+function addDays(d,n){const x=new Date(d);x.setDate(x.getDate()+n);return x;}
+function dayDiff(a,b){return Math.round((new Date(a.getFullYear(),a.getMonth(),a.getDate())-new Date(b.getFullYear(),b.getMonth(),b.getDate()))/86400000);}
+function realToday(){return state.todayMode==="anchor"?new Date(ANCHOR):new Date();}
+function kobanIndex(d){const diff=dayDiff(d,ANCHOR);if(diff<0)return null;return ((diff%28)+28)%28;}
+function rosterFor(d){const i=kobanIndex(d);return i===null?null:ROSTER[i];}
+function holiday(d){return HOLIDAYS[ymd(d)]||null;}
+function isSelf(name){return state.self && name && name.indexOf(state.self)!==-1;}
+
+// B列＝舘石（助役）の勤務： work(出勤) / off(公休) / hk(法公) / ake(明け=空欄)
+function dutyKind(duty){
+  if(duty==="北習B"||duty==="くB")return "work";
+  if(duty==="公休")return "off";
+  if(duty==="法公")return "hk";
+  return "ake";
+}
+function dutyLabel(duty){
+  const k=dutyKind(duty);
+  if(k==="work")return duty==="北習B"?"出勤 / 北習志野":"出勤 / くぬぎ山";
+  if(k==="off")return "公休";
+  if(k==="hk")return "法定公休";
+  return "明け（非番）";
+}
+
+// 駅長：土日が休み、月〜金が出勤
+function ekichoWorking(d){const w=d.getDay();return w!==0 && w!==6;}
+function ekichoLabel(d){return ekichoWorking(d)?"駅長出勤":"駅長休み";}
+
+// 北習志野 日勤：火〜土は中満（駅営業係員）、日・月は欠員
+const NIKKIN_NAME="中満";
+function nikkinFor(d){const w=d.getDay();return (w>=2&&w<=6)?NIKKIN_NAME:"欠";}
+
+// 選択中の本人が、その日どこで勤務するか
+function selfStatusFor(d){
+  const r=rosterFor(d);
+  if(!r) return null;
+  for(const st of STATIONS){
+    if(isSelf(r[st.jkey])) return {kind:"work",station:st.name.replace(/\s/g,""),role:st.role};
+    for(const p of splitPeople(r[st.ekey])){
+      if(isSelf(p)) return {kind:"work",station:st.name.replace(/\s/g,""),role:"駅務"};
+    }
+  }
+  if(isSelf(NIKKIN_NAME) && nikkinFor(d)===NIKKIN_NAME) return {kind:"work",station:"北習志野",role:"日勤"};
+  // 舘石はB列で休み種別（公休/法公/明け）まで分かる
+  if(state.self==="舘石"){
+    const k=dutyKind(r.duty);
+    if(k==="off")return{kind:"off",label:"公休"};
+    if(k==="hk")return{kind:"hk",label:"法定公休"};
+    return {kind:"ake",label:"明け（非番）"};
+  }
+  return {kind:"off",label:"勤務の予定なし"};
+}
+
+function splitPeople(str){return (str||"").split("・").map(s=>s.trim()).filter(Boolean);}
+
+/* ============ 描画 ============ */
+const $=id=>document.getElementById(id);
+const mainEl=$("main"), heroEl=$("hero");
+
+function render(){
+  // hero は day ビューのみ
+  heroEl.style.display = state.view==="day" ? "" : "none";
+  if(state.view==="day") renderHero();
+  if(state.view==="day") renderDay();
+  else if(state.view==="list") renderList();
+  else if(state.view==="cycle") renderCycle();
+  else if(state.view==="search") renderSearch();
+  document.querySelectorAll("nav.tabs button").forEach(b=>b.classList.toggle("on",b.dataset.view===state.view));
+}
+
+function renderHero(){
+  const d=state.date, r=rosterFor(d), wd=d.getDay(), hol=holiday(d);
+  $("dMain").textContent = `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日`;
+  const wdEl=$("dWd"); wdEl.textContent=`(${WD[wd]})`;
+  wdEl.style.color = hol||wd===0 ? "var(--sun)" : wd===6 ? "var(--sat)" : "var(--ink)";
+  const diff=dayDiff(d,realToday());
+  let rel = diff===0?"今日": diff===1?"明日": diff===-1?"昨日": diff>0?`${diff}日後`:`${-diff}日前`;
+  $("dSub").innerHTML = (hol?`<span class="hol">●${hol}</span>　`:"") + rel;
+  $("datePicker").value = ymd(d);
+
+  const meta=$("metaRow"), slot=$("selfSlot");
+  if(!r){ meta.innerHTML=""; slot.innerHTML=""; return; }
+  const ekiWork=ekichoWorking(d);
+  meta.innerHTML =
+    `<span class="chip koban">交番 <b>${circled(r.k)}</b></span>`+
+    `<span class="chip duty-${ekiWork?'work':'off'}"><b>${ekichoLabel(d)}</b></span>`;
+
+  // 自分バナー
+  const ss=selfStatusFor(d);
+  let cls="off",ic="🌙",txt="";
+  if(ss.kind==="work"){cls="";ic="🚉";txt=`本日は出勤 ・ ${ss.station}駅（${ss.role}）`;}
+  else if(ss.kind==="hk"){cls="hk";ic="☕";txt="本日は法定公休";}
+  else if(ss.kind==="ake"){cls="off";ic="🌙";txt="本日は明け（非番）";}
+  else {cls="off";ic="☕";txt=`本日は${ss.label}`;}
+  slot.innerHTML=`<div class="selfbar ${cls}"><span class="ic">${ic}</span><span>${esc(state.self)} さん：${txt}</span></div>`;
+}
+
+function circled(n){const c="①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳㉑㉒㉓㉔㉕㉖㉗㉘";return c[n-1]||n;}
+function esc(s){return (s||"").replace(/[&<>]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[m]));}
+
+function personHTML(name,lead){
+  if(!name) return `<span class="person empty">—</span>`;
+  const me=isSelf(name)?" me":"";
+  return `<span class="person${lead?" lead":""}${me}">${esc(name)}</span>`;
+}
+
+function renderDay(){
+  const d=state.date, r=rosterFor(d);
+  if(!r){
+    mainEl.innerHTML=`<div class="before">この日は 2026年7月16日の交番改正より前です。<br>7月16日以降の日付を選択してください。</div>`+
+      `<div class="foot">「今日」ボタン（下の📅を再タップ）や日付タップで移動できます。</div>`;
+    return;
+  }
+  let html="";
+  STATIONS.forEach(st=>{
+    const lead=r[st.jkey], staff=splitPeople(r[st.ekey]);
+    let nikkinRow="";
+    if(st.id==="kh"){
+      const n=nikkinFor(d);
+      nikkinRow = n==="欠"
+        ? `<div class="row"><div class="rlabel">日勤</div><div class="people"><span class="person vacant">欠</span></div></div>`
+        : `<div class="row"><div class="rlabel">日勤</div><div class="people">${personHTML(n)}</div></div>`;
+    }
+    html+=`<div class="card">
+      <div class="card-h"><span class="stdot" style="background:${st.color}"></span>
+        <span class="nm">${st.name.replace(/\s/g,"")}</span>
+        <span class="ct">${st.role} ＋ 駅務${st.id==="kh"?" ＋ 日勤":""}</span></div>
+      <div class="row"><div class="rlabel">助役</div><div class="people">${personHTML(lead,true)}</div></div>
+      <div class="row"><div class="rlabel">駅務</div><div class="people">${staff.length?staff.map(p=>personHTML(p)).join(""):`<span class="person empty">—</span>`}</div></div>
+      ${nikkinRow}
+    </div>`;
+  });
+  html+=`<div class="foot">交番 ${circled(r.k)}（28日周期）／ 松戸線 26.7.16 改正<br>日勤は火〜土が中満、日・月は欠員（代務）です<br>氏名・略称（「ひ」「な」等）は原表の表記どおりです</div>`;
+  mainEl.innerHTML=html;
+}
+
+function tagFor(kind){
+  return kind==="work"?`<span class="ltag tag-work">出勤</span>`
+    :kind==="off"?`<span class="ltag tag-off">休み</span>`
+    :kind==="hk"?`<span class="ltag tag-hk">法公</span>`
+    :`<span class="ltag tag-ake">明け</span>`;
+}
+
+function renderList(){
+  const start=realToday();
+  const today0=realToday();
+  let html="";
+  let curMonth="";
+  for(let i=0;i<42;i++){
+    const d=addDays(start,i), r=rosterFor(d);
+    if(!r) continue;
+    const mk=`${d.getFullYear()}年${d.getMonth()+1}月`;
+    if(mk!==curMonth){ html+=`<div class="lgroup-h">${mk}</div>`; curMonth=mk; }
+    const wd=d.getDay(), hol=holiday(d);
+    const ss=selfStatusFor(d);
+    const wdColor=hol||wd===0?"var(--sun)":wd===6?"var(--sat)":"var(--ink)";
+    const l1 = ss.kind==="work"
+      ? `<span class="me-i">${esc(state.self)}：${esc(ss.station)}・${esc(ss.role)}</span>`
+      : `北習 ${esc(r.kh_j)}${nikkinFor(d)==="欠"?` <span style="color:#c0392b;font-weight:800">日勤 欠</span>`:""}`;
+    const isToday=dayDiff(d,today0)===0;
+    html+=`<div class="lrow${isToday?" today":""}" data-goto="${ymd(d)}">
+      <div class="ldate"><span class="d">${d.getDate()}</span><span class="m">${d.getMonth()+1}月</span></div>
+      <div class="lwd" style="color:${wdColor}">${WD[wd]}</div>
+      <div class="lkob">${r.k}</div>
+      <div class="lbody"><div class="l1">${l1}</div></div>
+      ${tagFor(ss.kind)}
+    </div>`;
+  }
+  mainEl.innerHTML=html;
+  mainEl.querySelectorAll(".lrow").forEach(el=>el.onclick=()=>{
+    state.date=parseYmd(el.dataset.goto); switchView("day");
+  });
+}
+function parseYmd(s){const[y,m,dd]=s.split("-").map(Number);return new Date(y,m-1,dd);}
+
+function renderCycle(){
+  let html=`<div class="segsub">`+
+    STATIONS.map(st=>`<button data-st="${st.id}" class="${state.cycleStation===st.id?"on":""}">${st.name.replace(/\s/g,"")}</button>`).join("")+
+    `</div>`;
+  const st=STATIONS.find(s=>s.id===state.cycleStation);
+  const isKh = st.id==="kh";
+  html+=`<div class="kb-scroll"><table class="kb"><thead><tr>
+    <th class="kc">交</th><th>曜</th><th>舘石</th><th>${st.role}</th><th>駅務</th>${isKh?"<th>日勤</th>":""}</tr></thead><tbody>`;
+  // 交番→曜日は起点週で固定
+  ROSTER.forEach((r,i)=>{
+    const dt=new Date(ANCHOR.getFullYear(),ANCHOR.getMonth(),ANCHOR.getDate()+i);
+    const wd=WD[dt.getDay()];
+    const kind=dutyKind(r.duty);
+    const lead=r[st.jkey], staff=r[st.ekey]||"—";
+    const hl=v=>isSelf(v)?`<span class="me">${esc(v)}</span>`:esc(v);
+    const staffHL=(r[st.ekey]||"").split("・").map(hl).join("・")||"—";
+    const n=nikkinFor(dt);
+    const nCell = isKh ? `<td>${n==="欠"?`<span style="color:#c0392b;font-weight:800">欠</span>`:hl(n)}</td>` : "";
+    html+=`<tr class="${kind==='work'?'work':''} ${kind==='off'||kind==='hk'?'off':''}">
+      <td class="kc">${r.k}</td><td>${wd}</td>
+      <td class="duty">${r.duty?hl(r.duty):"<span style='color:#bbb'>―</span>"}</td>
+      <td>${hl(lead)}</td><td>${staffHL}</td>${nCell}</tr>`;
+  });
+  html+=`</tbody></table></div>`;
+  html+=`<div class="foot" style="margin-top:12px">交番①＝2026/7/16(木)を起点に28日ごと循環。曜日は実カレンダー基準です<br>「舘石」列＝原表の勤務欄（助役の交番）／日勤は火〜土が中満、日・月は欠<br>ピンク文字＝「${esc(state.self)}」さん</div>`;
+  mainEl.innerHTML=html;
+  mainEl.querySelectorAll(".segsub button").forEach(b=>b.onclick=()=>{state.cycleStation=b.dataset.st;renderCycle();});
+}
+
+function renderSearch(){
+  const names=allNames();
+  mainEl.innerHTML=`
+    <div class="searchbox"><input id="sInput" type="search" placeholder="名前で検索（例：舘石）" value="${esc(state._q||"")}" autocomplete="off"></div>
+    <div class="sugg" id="sSugg">${names.slice(0,12).map(n=>`<button>${esc(n)}</button>`).join("")}</div>
+    <div id="sResult"></div>`;
+  const inp=$("sInput");
+  inp.oninput=()=>{state._q=inp.value;doSearch(inp.value);};
+  $("sSugg").querySelectorAll("button").forEach(b=>b.onclick=()=>{inp.value=b.textContent;state._q=b.textContent;doSearch(b.textContent);});
+  if(state._q) doSearch(state._q);
+  else $("sResult").innerHTML=`<div class="shint">名前をタップ、または入力すると<br>今日以降の勤務予定（30日分）を表示します。</div>`;
+}
+
+function doSearch(q){
+  q=(q||"").trim();
+  const res=$("sResult"); if(!res)return;
+  if(!q){res.innerHTML=`<div class="shint">名前を入力してください。</div>`;return;}
+  const start=realToday();
+  let rows=[];
+  for(let i=0;i<42 && rows.length<20;i++){
+    const d=addDays(start,i), r=rosterFor(d);
+    if(!r)continue;
+    let hits=[];
+    STATIONS.forEach(st=>{
+      if((r[st.jkey]||"").indexOf(q)!==-1) hits.push(`${st.name.replace(/\s/g,"")}・${st.role}`);
+      (r[st.ekey]||"").split("・").forEach(p=>{if(p.indexOf(q)!==-1)hits.push(`${st.name.replace(/\s/g,"")}・駅務`);});
+    });
+    if(nikkinFor(d).indexOf(q)!==-1) hits.push("北習志野・日勤");
+    if(hits.length){
+      const wd=d.getDay(),hol=holiday(d);
+      const wdColor=hol||wd===0?"var(--sun)":wd===6?"var(--sat)":"var(--ink)";
+      rows.push(`<div class="lrow" data-goto="${ymd(d)}">
+        <div class="ldate"><span class="d">${d.getDate()}</span><span class="m">${d.getMonth()+1}月</span></div>
+        <div class="lwd" style="color:${wdColor}">${WD[wd]}</div>
+        <div class="lkob">${r.k}</div>
+        <div class="lbody"><div class="l1">${esc([...new Set(hits)].join(" / "))}</div></div>
+      </div>`);
+    }
+  }
+  res.innerHTML = rows.length
+    ? `<div class="lgroup-h">「${esc(q)}」の勤務（今日以降）</div>`+rows.join("")
+    : `<div class="shint">「${esc(q)}」の勤務は<br>今後42日間に見つかりませんでした。</div>`;
+  res.querySelectorAll(".lrow").forEach(el=>el.onclick=()=>{state.date=parseYmd(el.dataset.goto);switchView("day");});
+}
+
+function allNames(){
+  const s=new Set([NIKKIN_NAME]);
+  ROSTER.forEach(r=>{
+    STATIONS.forEach(st=>{
+      if(r[st.jkey])s.add(r[st.jkey]);
+      (r[st.ekey]||"").split("・").forEach(p=>{if(p.trim())s.add(p.trim());});
+    });
+  });
+  return [...s].sort((a,b)=>a.localeCompare(b,"ja"));
+}
+
+/* ============ 操作 ============ */
+function switchView(v){state.view=v;window.scrollTo(0,0);render();}
+
+document.querySelectorAll("nav.tabs button").forEach(b=>{
+  b.onclick=()=>{
+    if(b.dataset.view==="day" && state.view==="day"){state.date=realToday();} // 日別を再タップ→今日へ
+    switchView(b.dataset.view);
+  };
+});
+$("prevDay").onclick=()=>{state.date=addDays(state.date,-1);renderHero();renderDay();};
+$("nextDay").onclick=()=>{state.date=addDays(state.date,1);renderHero();renderDay();};
+$("datePicker").onchange=e=>{if(e.target.value){state.date=parseYmd(e.target.value);renderHero();renderDay();}};
+
+// 設定シート
+function openSheet(){buildSelfSelect();$("sheetBg").classList.add("show");$("sheet").classList.add("show");}
+function closeSheet(){$("sheetBg").classList.remove("show");$("sheet").classList.remove("show");}
+$("gearBtn").onclick=openSheet;
+$("sheetBg").onclick=closeSheet;
+$("sheetDone").onclick=closeSheet;
+function buildSelfSelect(){
+  const sel=$("selfSelect");
+  sel.innerHTML=allNames().map(n=>`<option value="${esc(n)}"${n===state.self?" selected":""}>${esc(n)}</option>`).join("");
+  $("todayMode").value=state.todayMode;
+}
+$("selfSelect").onchange=e=>{state.self=e.target.value;save();render();};
+$("todayMode").onchange=e=>{state.todayMode=e.target.value;state.date=realToday();save();render();};
+$("settingsNote").innerHTML=
+  `・交番①＝2026年7月16日(木)を起点に、28日周期で自動計算しています。<br>`+
+  `・駅長は月〜金が出勤、土日が休みとして表示します。<br>`+
+  `・北習志野の日勤は火〜土が中満（駅営業係員）、日・月は欠員のため「欠」と表示します。<br>`+
+  `・「自分の名前」に選んだ人はアプリ全体でピンク表示されます。<br>`+
+  `・元データ：携帯交番表 26.7.16（北習・くぬぎ山）。`;
+
+// 簡易永続化（保存できない環境でも動作）
+function save(){try{localStorage.setItem("koban_self",state.self);localStorage.setItem("koban_today",state.todayMode);}catch(e){}}
+function load(){try{const s=localStorage.getItem("koban_self");if(s)state.self=s;const t=localStorage.getItem("koban_today");if(t)state.todayMode=t;}catch(e){}}
+
+// スワイプで日移動（日別ビュー）
+let tsx=null,tsy=null;
+document.addEventListener("touchstart",e=>{if(state.view!=="day")return;tsx=e.touches[0].clientX;tsy=e.touches[0].clientY;},{passive:true});
+document.addEventListener("touchend",e=>{
+  if(state.view!=="day"||tsx===null)return;
+  const dx=e.changedTouches[0].clientX-tsx, dy=e.changedTouches[0].clientY-tsy;
+  if(Math.abs(dx)>60 && Math.abs(dx)>Math.abs(dy)*1.6){
+    state.date=addDays(state.date, dx<0?1:-1);renderHero();renderDay();
+  }
+  tsx=null;
+},{passive:true});
+
+/* ============ 起動 ============ */
+load();
+state.date=realToday();
+if(dayDiff(state.date,ANCHOR)<0) state.date=new Date(ANCHOR); // 改正前なら起点へ
+render();
+</script>
+</body>
+</html>
